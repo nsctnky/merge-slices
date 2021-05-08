@@ -10,16 +10,16 @@ public class GameManager : MonoBehaviour
     private void Awake()
     {
         GameLoader.CreateLoader();
-        GameLoader.GameLoadEvent.AddListener(OnGameLoad);
+        GameLoader.AllServicesAddedEvent.AddListener(OnAllServicesAdded);
     }
 
-    private void OnGameLoad()
+    private void OnAllServicesAdded()
     {
-        GameState = GameStates.None;
-
         _eventManager = ServiceLocator.GetService<EventManager>();
         _eventManager.OnGameStatesChangedEvent.AddListener(OnGameStateChanged);
         ServiceLocator.GetService<InputControllerBase>().AddOnClickedEvent(OnClicked);
+
+        _eventManager.OnGameStatesChangedEvent.Invoke(GameStates.Paused);
     }
 
     private void OnClicked()
