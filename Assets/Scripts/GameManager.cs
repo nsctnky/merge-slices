@@ -1,51 +1,40 @@
 using Enums;
-using InputControllers;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
-    private readonly RuntimePlatform _currentRuntimePlatform = Application.platform;
+    public static GameStates GameState { get; private set; }
 
-    private InputControllerBase _inputController;
-    private GameStates _gameStates;
-    
+    private EventManager _eventManager;
+
     private void Awake()
     {
-        _gameStates = GameStates.None;
-        _inputController = InstantiateInputController(_currentRuntimePlatform);
-        
-        _inputController.AddOnClickedEvent(OnClicked);
-        
-        ServiceLocator.AddService(new EventManager());
+        GameLoader.CreateLoader();
+        GameLoader.GameLoadEvent.AddListener(OnGameLoad);
+    }
+
+    private void OnGameLoad()
+    {
+        GameState = GameStates.None;
+
+        _eventManager = ServiceLocator.GetService<EventManager>();
+        _eventManager.OnGameStatesChangedEvent.AddListener(OnGameStateChanged);
+        ServiceLocator.GetService<InputControllerBase>().AddOnClickedEvent(OnClicked);
     }
 
     private void OnClicked()
     {
-        
+        if (!GameState.Equals(GameStates.Paused))
+            return;
+
+        GameState = GameStates.Playing;
+        _eventManager.OnGameStatesChangedEvent.Invoke(GameState);
+        Debug.Log("GAME STARTING...");
     }
 
-    #region INPUT CONTROLLER
-    private InputControllerBase InstantiateInputController(RuntimePlatform platform)
+    private void OnGameStateChanged(GameStates state)
     {
-        GameObject go = new GameObject($"InputController_{platform}");
-
-        switch (platform)
-        {
-            case RuntimePlatform.Android:
-                go.AddComponent<Mobile>();
-                return go.GetComponent<Mobile>();
-            default:
-                go.AddComponent<Standalone>();
-                return go.GetComponent<Standalone>();
-        }
+        Debug.Log("Current game state: " + state);
+        GameState = state;
     }
-    #endregion INPUT CONTROLLER
-
-    #region TEST FUNC
-    [ContextMenu("TEST_ServiceLocator")]
-    private void TEST_ServiceLocator()
-    {
-        ServiceLocator.GetService<EventManager>().TEST_Do();
-    }
-    #endregion TEST FUNC
 }
