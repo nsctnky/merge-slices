@@ -11,7 +11,7 @@ public class CircleController : MonoBehaviour
 
     private void Awake()
     {
-        GameLoader.AllServicesAddedEvent.AddListener(OnAllServicesAdded);
+        GameLoader.GameInitialized.AddListener(OnGameInitialized);
     }
 
     private void Update()
@@ -22,7 +22,7 @@ public class CircleController : MonoBehaviour
         transform.Rotate(Vector3.forward, angle);
     }
 
-    private void OnAllServicesAdded()
+    private void OnGameInitialized()
     {
         _eventManager = ServiceLocator.GetService<EventManager>();
         _eventManager.OnGameStatesChangedEvent.AddListener(OnGameStateChange);

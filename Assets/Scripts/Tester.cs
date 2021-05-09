@@ -16,7 +16,7 @@ public class Tester : MonoBehaviour
     [ContextMenu("Game Load")]
     private void TEST_GameLoad()
     {
-        GameLoader.AllServicesAddedEvent.Invoke();
+        GameLoader.GameInitialized.Invoke();
     }
 }
 #endif

@@ -10,15 +10,19 @@ public class PoolManager : MonoBehaviour
 
     private void Awake()
     {
-        GameLoader.AllServicesAddedEvent.AddListener(OnAllServicesAdded);
-        
-        foreach (var obj in objects)
-            InstantiateObjects(obj.prefab, obj.poolingCount);    
+        GameLoader.ServiceLocatorInitialized.AddListener(OnServiceLocatorInitialized);
     }
 
-    private void OnAllServicesAdded()
+    private void OnServiceLocatorInitialized()
     {
         ServiceLocator.AddService<PoolManager>(this);
+    }
+
+    public void InitializePool()
+    {
+        Debug.Log("Pool Manager initializing...");
+        foreach (var obj in objects)
+            InstantiateObjects(obj.prefab, obj.poolingCount);   
     }
     
     public GameObject GetPooledObjectByTag(string tag)

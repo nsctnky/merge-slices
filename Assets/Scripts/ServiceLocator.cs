@@ -20,6 +20,16 @@ public class ServiceLocator
         }
     }
 
+    public static void InitializeServiceLocator()
+    {
+        if(_instance != null)
+            return;
+        
+        _instance = new ServiceLocator();
+        Debug.Log("Service locator initialized.");
+        GameLoader.ServiceLocatorInitialized.Invoke();
+    }
+    
     public static void AddService<T>(object service)
     {
         lock (lockObj)

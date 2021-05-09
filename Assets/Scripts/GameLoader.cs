@@ -3,7 +3,9 @@ using UnityEngine.Events;
 
 public class GameLoader : MonoBehaviour
 {
-    public static UnityEvent AllServicesAddedEvent { get; } = new UnityEvent();
+    public static UnityEvent GameInitialized { get; } = new UnityEvent();
+    public static UnityEvent ServiceLocatorInitialized { get; } = new UnityEvent();
+    
     private static GameLoader _instance;
     
     public static GameLoader CreateLoader()
@@ -16,22 +18,35 @@ public class GameLoader : MonoBehaviour
 
     private void Awake()
     {
-        Debug.Log("Game loader instantiated...");
-        AllServicesAddedEvent.AddListener(OnAllServicesAdded);
+        Debug.Log("Game loader instantiated.");
+        GameInitialized.AddListener(OnGameInitialized);
+        ServiceLocatorInitialized.AddListener(OnServiceLocatorInitialized);
+    
+        ServiceLocator.InitializeServiceLocator();
     }
 
     private void Start()
     {
-        ServiceLocator.AddService<EventManager>(new EventManager());
-        ServiceLocator.AddService<InputControllerBase>(InputControllerBase.CreateInputController());
-
-        AllServicesAddedEvent.Invoke();
+        GameInitialized.Invoke();
     }
 
-    private void OnAllServicesAdded()
+    private void OnGameInitialized()
     {
-        Debug.Log("OnGameLoaded and gameLoader will be destroyed.");
-        AllServicesAddedEvent.RemoveAllListeners();
+        Debug.Log("Game initialized.");
+        DestroyLoader();
+    }
+
+    private void OnServiceLocatorInitialized()
+    {
+        ServiceLocator.AddService<EventManager>(new EventManager());
+        ServiceLocator.AddService<InputControllerBase>(InputControllerBase.CreateInputController());
+    }
+
+    private void DestroyLoader()
+    {
+        GameInitialized.RemoveAllListeners();
+        ServiceLocatorInitialized.RemoveAllListeners();
+        Debug.Log("GameLoader was destroyed.");
         Destroy(gameObject);
     }
 }
