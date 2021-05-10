@@ -11,6 +11,8 @@ public class GameController : MonoBehaviour
 
     private readonly PieceController[] _pieces = new PieceController[8];
     private PieceController _pieceController;
+    private int _lastIndex;
+    private Coroutine _mergeCoroutine;
 
     private void Awake()
     {
@@ -55,37 +57,49 @@ public class GameController : MonoBehaviour
     {
         _pieceController.transform.SetParent(circleController.transform);
         yield return _pieceController.StartSnapping(triggerData.Position, triggerData.Rotation);
-        yield return StartMerge(triggerData.Index);
-        OnSnapCompleted();
-    }
-
-    private Coroutine StartMerge(int index)
-    {
-        return StartCoroutine(IterateMerge(index));
-    }
-
-    private IEnumerator IterateMerge(int index)
-    {
-        if (_pieces[index] == null)
+        _lastIndex = triggerData.Index;
+        if (_pieces[_lastIndex] == null)
         {
-            _pieces[index] = _pieceController;
+            _pieces[_lastIndex] = _pieceController;
         }
         else
         {
             GivePieceToPool(_pieceController);
         }
 
+        yield return new WaitForEndOfFrame();
+        Debug.Log(IsMergeExist(_lastIndex));
+        while (IsMergeExist(_lastIndex))
+        {
+            yield return StartMerge(_lastIndex);
+
+            if (_mergeCoroutine != null)
+                StopCoroutine(_mergeCoroutine);
+        }
+
+        OnSnapCompleted();
+    }
+
+    private Coroutine StartMerge(int index)
+    {
+        _mergeCoroutine = StartCoroutine(IterateMerge(index));
+        return _mergeCoroutine;
+    }
+
+    private IEnumerator IterateMerge(int index)
+    {
         AdjacentPiece adj = GetAdjacentPiece(index);
         if (adj.Next != null && adj.Prev != null)
         {
             Debug.Log("Merging both");
             yield return adj.Prev.StartRotate(_pieceController.RotationZ);
             yield return adj.Next.StartRotate(_pieceController.RotationZ);
-
+        
             GivePieceToPool(_pieces[GetPrevIndex(index)]);
             GivePieceToPool(_pieces[GetNextIndex(index)]);
             _pieces[GetPrevIndex(index)] = null;
             _pieces[GetNextIndex(index)] = null;
+            _lastIndex = index;
         }
         else if (adj.Prev != null)
         {
@@ -93,6 +107,7 @@ public class GameController : MonoBehaviour
             yield return _pieceController.StartRotate(adj.Prev.RotationZ);
             _pieces[index] = null;
             GivePieceToPool(_pieceController);
+            _lastIndex = GetPrevIndex(index);
         }
         else if (adj.Next != null)
         {
@@ -100,6 +115,7 @@ public class GameController : MonoBehaviour
             yield return _pieceController.StartRotate(adj.Next.RotationZ);
             _pieces[index] = null;
             GivePieceToPool(_pieceController);
+            _lastIndex = GetNextIndex(index);
         }
 
         // do merges
@@ -163,6 +179,12 @@ public class GameController : MonoBehaviour
             next = 0;
 
         return next;
+    }
+
+    private bool IsMergeExist(int index)
+    {
+        AdjacentPiece adj = GetAdjacentPiece(index);
+        return adj.Next != null || adj.Prev != null;
     }
 }
 
