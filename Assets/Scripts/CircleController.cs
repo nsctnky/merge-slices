@@ -12,7 +12,8 @@ public class CircleController : MonoBehaviour
 
     private bool _isGameStarted;
     private EventManager _eventManager;
-
+    private readonly int[] _cells = new int[8];
+    
     public int SnappedIndex { get; private set; }
     
     private void Awake()
@@ -54,5 +55,11 @@ public class CircleController : MonoBehaviour
     private void OnPieceTrigger(int index)
     {
         SnappedIndex = index;
+    }
+    
+    private void ClearArray()
+    {
+        for (int i = 0; i < _cells.Length; i++)
+            _cells[i] = 0;
     }
 }
