@@ -6,6 +6,7 @@ namespace Enums
         Waiting,
         Active,
         Moving,
+        Snapping,
         Locked
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Enums;
 using UnityEngine;
@@ -6,27 +7,31 @@ public class CircleController : MonoBehaviour
 {
     [SerializeField]
     private float angle = 1.5f;
-
     [SerializeField]
     private List<PieceTriggerArea> triggers;
 
     private bool _isGameStarted;
     private EventManager _eventManager;
-    private readonly int[] _cells = new int[8];
-    
-    public int SnappedIndex { get; private set; }
-    
+
     private void Awake()
     {
         GameLoader.GameInitialized.AddListener(OnGameInitialized);
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
         if (!_isGameStarted)
             return;
-
+        
         transform.Rotate(Vector3.forward, angle);
+    }
+
+    public void AddTriggerListener(Action<PieceTriggerData> callback)
+    {
+        foreach (var trigger in triggers)
+        {
+            trigger.Init(callback);
+        }
     }
 
     private void OnGameInitialized()
@@ -40,26 +45,6 @@ public class CircleController : MonoBehaviour
         if (state.Equals(GameStates.Playing))
         {
             _isGameStarted = true;
-            OnLevelStarted();
         }
-    }
-
-    private void OnLevelStarted()
-    {
-        foreach (var trigger in triggers)
-        {
-            trigger.Init(OnPieceTrigger);
-        }
-    }
-
-    private void OnPieceTrigger(int index)
-    {
-        SnappedIndex = index;
-    }
-    
-    private void ClearArray()
-    {
-        for (int i = 0; i < _cells.Length; i++)
-            _cells[i] = 0;
     }
 }
