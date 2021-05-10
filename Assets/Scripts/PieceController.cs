@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using Enums;
 using UnityEngine;
@@ -61,7 +60,7 @@ public class PieceController : MonoBehaviour
     
     public Coroutine StartRotate(float target)
     {
-        return StartCoroutine(IterateRotate(target));
+        return StartCoroutine(IterateSmoothRotate(target));
     }
 
     public Coroutine StartSnapping(Vector2 position, float rotation)
@@ -80,7 +79,7 @@ public class PieceController : MonoBehaviour
         _pieceState = PieceStates.Locked;
     }
 
-    private IEnumerator IterateRotate(float target)
+    private IEnumerator IterateSmoothRotate(float target)
     {
         Quaternion targetQua = Quaternion.Euler(0, 0, target);
         while (Quaternion.Angle(transform.localRotation, targetQua) > 10f)
@@ -91,7 +90,7 @@ public class PieceController : MonoBehaviour
         
         transform.localRotation = Quaternion.Euler(0, 0, target);
     }
-
+    
     private IEnumerator IterateMove()
     {
         while (true)
@@ -107,8 +106,17 @@ public class PieceController : MonoBehaviour
     private IEnumerator IterateSnap(Vector2 position, float rotation)
     {
         _pieceState = PieceStates.Snapping;
+        Quaternion targetQua = Quaternion.Euler(0, 0, rotation);
+        
+        while (Vector2.Distance(transform.localPosition, position) > 0.1f)
+        {
+            transform.localPosition = Vector2.Lerp(transform.localPosition, position, 10f * Time.deltaTime);
+            transform.localRotation = Quaternion.Lerp(transform.localRotation, targetQua, 10f * Time.deltaTime);
+            yield return new WaitForEndOfFrame();
+        }
+        
         transform.localPosition = position;
-        transform.rotation = Quaternion.Euler(0, 0, rotation);
+        transform.localRotation = targetQua;
         yield return new WaitForEndOfFrame();
         OnSnapCompleted();
     }

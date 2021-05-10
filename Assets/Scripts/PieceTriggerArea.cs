@@ -20,7 +20,7 @@ public class PieceTriggerArea : MonoBehaviour
 
     private float GetRotation()
     {
-        return transform.rotation.eulerAngles.z;
+        return transform.localRotation.eulerAngles.z;
     }
     
     private void OnTriggerEnter2D(Collider2D other)
