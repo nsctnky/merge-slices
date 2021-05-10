@@ -8,8 +8,10 @@ public class GameController : MonoBehaviour
     private CircleController circleController;
     [SerializeField]
     private Transform pieceBulletPosition;
-
-    private readonly PieceController[] _pieces = new PieceController[8];
+    [SerializeField]
+    private int nextValue;
+    [SerializeField]
+    private PieceController[] _pieces = new PieceController[8];
     private PieceController _pieceController;
     private int _lastIndex;
     private Coroutine _mergeCoroutine;
@@ -67,11 +69,10 @@ public class GameController : MonoBehaviour
             GivePieceToPool(_pieceController);
         }
 
-        yield return new WaitForEndOfFrame();
-        Debug.Log(IsMergeExist(_lastIndex));
         while (IsMergeExist(_lastIndex))
         {
             yield return StartMerge(_lastIndex);
+            yield return new WaitForEndOfFrame();
 
             if (_mergeCoroutine != null)
                 StopCoroutine(_mergeCoroutine);
@@ -88,38 +89,76 @@ public class GameController : MonoBehaviour
 
     private IEnumerator IterateMerge(int index)
     {
+        Debug.Log("Merge starting");
         AdjacentPiece adj = GetAdjacentPiece(index);
-        if (adj.Next != null && adj.Prev != null)
-        {
-            Debug.Log("Merging both");
-            yield return adj.Prev.StartRotate(_pieceController.RotationZ);
-            yield return adj.Next.StartRotate(_pieceController.RotationZ);
+        bool isPrevEquals = adj.Prev != null && adj.Prev.Value.Equals(_pieceController.Value);
+        bool isNextEquals = adj.Next != null && adj.Next.Value.Equals(_pieceController.Value);
         
-            GivePieceToPool(_pieces[GetPrevIndex(index)]);
-            GivePieceToPool(_pieces[GetNextIndex(index)]);
-            _pieces[GetPrevIndex(index)] = null;
-            _pieces[GetNextIndex(index)] = null;
-            _lastIndex = index;
-        }
-        else if (adj.Prev != null)
+        if (isPrevEquals && isNextEquals)
         {
-            Debug.Log("Merging prev");
-            yield return _pieceController.StartRotate(adj.Prev.RotationZ);
-            _pieces[index] = null;
-            GivePieceToPool(_pieceController);
-            _lastIndex = GetPrevIndex(index);
-        }
-        else if (adj.Next != null)
-        {
-            Debug.Log("Merging next");
-            yield return _pieceController.StartRotate(adj.Next.RotationZ);
-            _pieces[index] = null;
-            GivePieceToPool(_pieceController);
-            _lastIndex = GetNextIndex(index);
+            int rnd = Randomize();
+            PieceController randomAdj = rnd == 0 ? adj.Next : adj.Prev;
+            if (Randomize() == 1)
+            {
+                yield return _pieceController.StartRotate(randomAdj.RotationZ);
+                GivePieceToPool(_pieceController);
+                _pieces[index] = null;
+                _lastIndex = rnd == 0 ? GetNextIndex(index) : GetPrevIndex(index);
+            }
+            else
+            {
+                yield return randomAdj.StartRotate(_pieceController.RotationZ);
+                int i = rnd == 0 ? GetNextIndex(index) : GetPrevIndex(index);
+                GivePieceToPool(randomAdj);
+                _pieces[i] = null;
+                _lastIndex = index;
+            }
+
+            Debug.Log("Merge Finished");
+            yield break;
         }
 
-        // do merges
-        yield return new WaitForEndOfFrame();
+        if (isPrevEquals)
+        {
+            Debug.Log("Merge Prev");
+            int prev = GetPrevIndex(index);
+            if (Randomize() == 1)
+            {
+                yield return _pieceController.StartRotate(adj.Prev.RotationZ);
+                GivePieceToPool(_pieceController);
+                _pieces[index] = null;
+                _lastIndex = prev;
+            }
+            else
+            {
+                yield return adj.Prev.StartRotate(_pieceController.RotationZ);
+                GivePieceToPool(adj.Prev);
+                _pieces[prev] = null;
+                _lastIndex = index;
+            }
+        }
+        else if (isNextEquals)
+        {
+            Debug.Log("Merge Next");
+            int next = GetNextIndex(index);
+            if (Randomize() == 1)
+            {
+                yield return _pieceController.StartRotate(adj.Next.RotationZ);
+                GivePieceToPool(_pieceController);
+                _pieces[index] = null;
+                _lastIndex = next;
+            }
+            else
+            {
+                yield return adj.Next.StartRotate(_pieceController.RotationZ);
+                GivePieceToPool(adj.Next);
+                _pieces[next] = null;
+                _lastIndex = index;
+            }
+        }
+
+        Debug.Log("Merge Finished");
+        yield break;
     }
 
     private void OnSnapCompleted()
@@ -138,7 +177,9 @@ public class GameController : MonoBehaviour
 
     private PieceController GetPiece()
     {
-        return ServiceLocator.GetService<PoolManager>().GetPooledObjectByTag<PieceController>("Piece");
+        PieceController piece = ServiceLocator.GetService<PoolManager>().GetPooledObjectByTag<PieceController>("Piece");
+        piece.SetValue(nextValue);
+        return piece;
     }
 
     private void GivePieceToPool(PieceController go)
@@ -184,7 +225,14 @@ public class GameController : MonoBehaviour
     private bool IsMergeExist(int index)
     {
         AdjacentPiece adj = GetAdjacentPiece(index);
-        return adj.Next != null || adj.Prev != null;
+        bool isPrevEquals = adj.Prev != null && adj.Prev.Value.Equals(_pieceController.Value);
+        bool isNextEquals = adj.Next != null && adj.Next.Value.Equals(_pieceController.Value);
+        return isNextEquals || isPrevEquals;
+    }
+
+    private int Randomize()
+    {
+        return Random.Range(0, 2);
     }
 }
 

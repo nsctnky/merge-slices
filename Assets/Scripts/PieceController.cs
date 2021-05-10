@@ -1,9 +1,14 @@
 using System.Collections;
 using Enums;
+using TMPro;
 using UnityEngine;
 
 public class PieceController : MonoBehaviour
 {
+    [SerializeField]
+    private int value = 2;
+    [SerializeField]
+    private TextMeshPro title;
     [SerializeField]
     private PolygonCollider2D collider;
     [SerializeField]
@@ -14,7 +19,10 @@ public class PieceController : MonoBehaviour
     private PieceStates _pieceState;
     private Coroutine _moveCoroutine;
 
-    public int Value { get; private set; }
+    public int Value
+    {
+        get { return value; }
+    }
 
     public float RotationZ
     {
@@ -38,9 +46,9 @@ public class PieceController : MonoBehaviour
 
     public void Init(Transform parent, Transform position)
     {
-        Debug.Log("New piece get from pool.");
         collider.enabled = true;
         rigidbody.simulated = true;
+        title.text = value.ToString();
         transform.localRotation = Quaternion.Euler(0, 0, 0);
         transform.SetParent(parent);
         transform.localPosition = position.localPosition;
@@ -53,11 +61,10 @@ public class PieceController : MonoBehaviour
         if (!_pieceState.Equals(PieceStates.Active))
             return;
 
-        Debug.Log("Piece Moving....");
         _moveCoroutine = StartCoroutine(IterateMove());
         _pieceState = PieceStates.Moving;
     }
-    
+
     public Coroutine StartRotate(float target)
     {
         return StartCoroutine(IterateSmoothRotate(target));
@@ -73,6 +80,11 @@ public class PieceController : MonoBehaviour
         _pieceState = PieceStates.Active;
     }
 
+    public void SetValue(int val)
+    {
+        value = val;
+    }
+    
     private void OnSnapCompleted()
     {
         // after snap..
@@ -87,10 +99,10 @@ public class PieceController : MonoBehaviour
             transform.localRotation = Quaternion.Lerp(transform.localRotation, targetQua, 5f * Time.deltaTime);
             yield return new WaitForEndOfFrame();
         }
-        
+
         transform.localRotation = Quaternion.Euler(0, 0, target);
     }
-    
+
     private IEnumerator IterateMove()
     {
         while (true)
@@ -107,16 +119,17 @@ public class PieceController : MonoBehaviour
     {
         _pieceState = PieceStates.Snapping;
         Quaternion targetQua = Quaternion.Euler(0, 0, rotation);
-        
+
         while (Vector2.Distance(transform.localPosition, position) > 0.1f)
         {
             transform.localPosition = Vector2.Lerp(transform.localPosition, position, 10f * Time.deltaTime);
             transform.localRotation = Quaternion.Lerp(transform.localRotation, targetQua, 10f * Time.deltaTime);
             yield return new WaitForEndOfFrame();
         }
-        
+
         transform.localPosition = position;
         transform.localRotation = targetQua;
+        title.text = Value.ToString();
         yield return new WaitForEndOfFrame();
         OnSnapCompleted();
     }
