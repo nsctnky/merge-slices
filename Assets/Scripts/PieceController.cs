@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using Enums;
 using UnityEngine;
@@ -19,6 +20,11 @@ public class PieceController : MonoBehaviour
     public float RotationZ
     {
         get { return transform.localRotation.eulerAngles.z; }
+    }
+
+    private void OnDisable()
+    {
+        StopAllCoroutines();
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -52,13 +58,7 @@ public class PieceController : MonoBehaviour
         _moveCoroutine = StartCoroutine(IterateMove());
         _pieceState = PieceStates.Moving;
     }
-
-    public void Rotate(float target)
-    {
-        Quaternion targetQua = Quaternion.Euler(0, 0, target);
-        transform.rotation = Quaternion.Lerp(transform.rotation, targetQua, 10f * Time.deltaTime);
-    }
-
+    
     public Coroutine StartRotate(float target)
     {
         return StartCoroutine(IterateRotate(target));
