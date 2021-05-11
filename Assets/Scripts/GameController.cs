@@ -9,9 +9,9 @@ public class GameController : MonoBehaviour
     private CircleController circleController;
     [SerializeField]
     private Transform pieceBulletPosition;
-
     [SerializeField]
-    private PieceController[] _pieces = new PieceController[8];
+    private GameObject infoText;
+    private readonly PieceController[] _pieces = new PieceController[8];
     private PieceController _pieceController;
     private int _lastIndex;
     private Coroutine _mergeCoroutine;
@@ -48,6 +48,7 @@ public class GameController : MonoBehaviour
         if (!state.Equals(GameStates.Playing))
             return;
 
+        infoText.gameObject.SetActive(false);
         PrepareNewPiece();
         _pieceController.SetPieceStateActive();
     }
