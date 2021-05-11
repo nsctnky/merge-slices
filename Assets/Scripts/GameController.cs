@@ -1,6 +1,7 @@
 using System.Collections;
 using Enums;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class GameController : MonoBehaviour
 {
@@ -8,13 +9,13 @@ public class GameController : MonoBehaviour
     private CircleController circleController;
     [SerializeField]
     private Transform pieceBulletPosition;
-    [SerializeField]
-    private int nextValue;
+
     [SerializeField]
     private PieceController[] _pieces = new PieceController[8];
     private PieceController _pieceController;
     private int _lastIndex;
     private Coroutine _mergeCoroutine;
+    private int _currentLevel = 1;
 
     private void Awake()
     {
@@ -25,6 +26,7 @@ public class GameController : MonoBehaviour
     private void OnDestroy()
     {
         ServiceLocator.GetService<InputControllerBase>().RemoveOnClickedEvent(OnClicked);
+        ServiceLocator.GetService<EventManager>().OnGameStatesChangedEvent.RemoveListener(OnGameStateChanged);
     }
 
     private void OnGameInitialized()
@@ -66,7 +68,9 @@ public class GameController : MonoBehaviour
         }
         else
         {
+            UpdatePieceValue(_pieces[_lastIndex]);
             GivePieceToPool(_pieceController);
+            _pieceController = _pieces[_lastIndex];
         }
 
         while (IsMergeExist(_lastIndex))
@@ -83,17 +87,19 @@ public class GameController : MonoBehaviour
 
     private Coroutine StartMerge(int index)
     {
+        if (_mergeCoroutine != null)
+            StopCoroutine(_mergeCoroutine);
+
         _mergeCoroutine = StartCoroutine(IterateMerge(index));
         return _mergeCoroutine;
     }
 
     private IEnumerator IterateMerge(int index)
     {
-        Debug.Log("Merge starting");
         AdjacentPiece adj = GetAdjacentPiece(index);
         bool isPrevEquals = adj.Prev != null && adj.Prev.Value.Equals(_pieceController.Value);
         bool isNextEquals = adj.Next != null && adj.Next.Value.Equals(_pieceController.Value);
-        
+
         if (isPrevEquals && isNextEquals)
         {
             int rnd = Randomize();
@@ -102,6 +108,8 @@ public class GameController : MonoBehaviour
             {
                 yield return _pieceController.StartRotate(randomAdj.RotationZ);
                 GivePieceToPool(_pieceController);
+                UpdatePieceValue(randomAdj);
+                _pieceController = randomAdj;
                 _pieces[index] = null;
                 _lastIndex = rnd == 0 ? GetNextIndex(index) : GetPrevIndex(index);
             }
@@ -110,28 +118,30 @@ public class GameController : MonoBehaviour
                 yield return randomAdj.StartRotate(_pieceController.RotationZ);
                 int i = rnd == 0 ? GetNextIndex(index) : GetPrevIndex(index);
                 GivePieceToPool(randomAdj);
+                UpdatePieceValue(_pieceController);
                 _pieces[i] = null;
                 _lastIndex = index;
             }
 
-            Debug.Log("Merge Finished");
             yield break;
         }
 
         if (isPrevEquals)
         {
-            Debug.Log("Merge Prev");
             int prev = GetPrevIndex(index);
             if (Randomize() == 1)
             {
                 yield return _pieceController.StartRotate(adj.Prev.RotationZ);
+                UpdatePieceValue(adj.Prev);
                 GivePieceToPool(_pieceController);
+                _pieceController = adj.Prev;
                 _pieces[index] = null;
                 _lastIndex = prev;
             }
             else
             {
                 yield return adj.Prev.StartRotate(_pieceController.RotationZ);
+                UpdatePieceValue(_pieceController);
                 GivePieceToPool(adj.Prev);
                 _pieces[prev] = null;
                 _lastIndex = index;
@@ -139,31 +149,29 @@ public class GameController : MonoBehaviour
         }
         else if (isNextEquals)
         {
-            Debug.Log("Merge Next");
             int next = GetNextIndex(index);
             if (Randomize() == 1)
             {
                 yield return _pieceController.StartRotate(adj.Next.RotationZ);
+                UpdatePieceValue(adj.Next);
                 GivePieceToPool(_pieceController);
+                _pieceController = adj.Next;
                 _pieces[index] = null;
                 _lastIndex = next;
             }
             else
             {
                 yield return adj.Next.StartRotate(_pieceController.RotationZ);
+                UpdatePieceValue(_pieceController);
                 GivePieceToPool(adj.Next);
                 _pieces[next] = null;
                 _lastIndex = index;
             }
         }
-
-        Debug.Log("Merge Finished");
-        yield break;
     }
 
     private void OnSnapCompleted()
     {
-        // after snapped process..
         PrepareNewPiece();
         _pieceController.SetPieceStateActive();
     }
@@ -172,14 +180,13 @@ public class GameController : MonoBehaviour
     {
         _pieceController = null;
         _pieceController = GetPiece();
+        _pieceController.SetValue(Random.Range(1, _currentLevel + 1));
         _pieceController.Init(transform, pieceBulletPosition);
     }
 
     private PieceController GetPiece()
     {
-        PieceController piece = ServiceLocator.GetService<PoolManager>().GetPooledObjectByTag<PieceController>("Piece");
-        piece.SetValue(nextValue);
-        return piece;
+        return ServiceLocator.GetService<PoolManager>().GetPooledObjectByTag<PieceController>("Piece");
     }
 
     private void GivePieceToPool(PieceController go)
@@ -233,6 +240,17 @@ public class GameController : MonoBehaviour
     private int Randomize()
     {
         return Random.Range(0, 2);
+    }
+
+    private void UpdatePieceValue(PieceController piece)
+    {
+        int pow = piece.Value + 1;
+
+        if (pow > 5)
+            pow = 5;
+
+        piece.SetValue(pow);
+        _currentLevel = pow;
     }
 }
 

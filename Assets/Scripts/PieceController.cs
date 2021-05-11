@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using Enums;
 using TMPro;
@@ -48,7 +49,6 @@ public class PieceController : MonoBehaviour
     {
         collider.enabled = true;
         rigidbody.simulated = true;
-        title.text = value.ToString();
         transform.localRotation = Quaternion.Euler(0, 0, 0);
         transform.SetParent(parent);
         transform.localPosition = position.localPosition;
@@ -83,6 +83,7 @@ public class PieceController : MonoBehaviour
     public void SetValue(int val)
     {
         value = val;
+        title.text = Convert.ToInt32(Mathf.Pow(2, val)).ToString();
     }
     
     private void OnSnapCompleted()
@@ -129,7 +130,6 @@ public class PieceController : MonoBehaviour
 
         transform.localPosition = position;
         transform.localRotation = targetQua;
-        title.text = Value.ToString();
         yield return new WaitForEndOfFrame();
         OnSnapCompleted();
     }
